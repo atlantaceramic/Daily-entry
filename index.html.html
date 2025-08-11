@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Daily Entry — Dark Theme (Full)</title>
+<style>
+  :root{
+    --bg:#1c1c1e;        /* iOS dark background */
+    --card:#2c2c2e;      /* surfaces */
+    --border:#3a3a3c;    /* separators */
+    --ink:#ffffff;       /* primary text */
+    --muted:#9a9aa0;     /* secondary text */
+    --accent:#0a84ff;    /* iOS blue */
+    --danger:#ff453a;    /* iOS red */
+    --ok:#32d74b;        /* iOS green */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:17px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif}
+  body{padding-bottom:calc(env(safe-area-inset-bottom,0) + 92px)}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  h1{margin:0 0 8px;font-size:22px;font-weight:700}
+  h2{margin:0 0 10px;font-size:18px;font-weight:700}
+  label{font-size:14px;color:var(--muted);display:block;margin-bottom:6px}
+
+  /* Inputs & buttons */
+  input{background:#3a3a3c;border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:12px;outline:none;width:100%;font-size:17px;transition:border-color .15s, box-shadow .15s}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.28)}
+  input[disabled]{background:#2c2c2e;color:#b3b3b8}
+  button{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--card);color:var(--ink);cursor:pointer;font-weight:600;font-size:16px;min-height:46px;min-width:44px;transition:transform .04s ease, background .15s, border-color .15s}
+  button:hover{background:#38383a}
+  button:active{transform:translateY(1px)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.ghost{background:var(--card);border-color:var(--border);color:var(--accent)}
+  button.danger{background:var(--card);border-color:#ff7b74;color:#ffd7d4}
+
+  .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
+
+  /* Summary cards */
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .box{background:#202022;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+  .box .val{font-size:20px;font-weight:800;margin-top:4px}
+
+  /* Table */
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:auto;max-height:56vh}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left}
+  thead th{position:sticky;top:0;background:#232326;z-index:1}
+  tbody tr:hover{background:#2f2f31}
+  .muted{color:var(--muted)}
+  .hl{outline:2px solid rgba(10,132,255,.5);background:#1a2a3f}
+
+  /* Bottom actions */
+  .sticky-actions{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;gap:10px;background:linear-gradient(180deg, rgba(28,28,30,0) 0%, rgba(28,28,30,.95) 30%), var(--bg);border-top:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0))}
+  .sticky-actions>*{flex:1}
+
+  @media(max-width:720px){
+    .wrap{padding:12px}
+    .grid{grid-template-columns:1fr;gap:10px}
+    .summary{grid-template-columns:1fr 1fr}
+    h1{font-size:20px}
+    h2{font-size:17px}
+    button{font-size:15px}
+  }
+  @media print{
+    body{background:#fff;color:#000;padding:0}
+    .no-print,.sticky-actions{display:none}
+    .table-wrap{max-height:none}
+    .card,.wrap{border:0;box-shadow:none}
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header / Entry -->
+  <div class="card">
+    <div class="row">
+      <h1>Daily Entry</h1>
+      <div class="row-actions no-print">
+        <label>Commission %<br>
+          <input id="comm" type="number" step="0.0001" min="0" value="0.7" style="width:140px">
+        </label>
+        <div class="row-actions">
+          <button id="btnPreview" class="ghost">Preview & Print</button>
+          <button id="btnCsv" class="ghost">CSV</button>
+          <button id="btnScrollLast" class="ghost">Last</button>
+        </div>
+      </div>
+    </div>
+    <form id="entryForm" novalidate>
+      <div id="controls" class="grid" style="margin-top:4px">
+        <div>
+          <label>Amount</label>
+          <input id="amount" type="text" inputmode="numeric" placeholder="e.g. 100000" enterkeyhint="done" autocomplete="off"/>
+          <input type="submit" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="today" type="text" disabled>
+        </div>
+        <div>
+          <label>Time</label>
+          <input id="nowtime" type="text" disabled>
+        </div>
+        <div class="row-actions">
+          <button id="clear" class="ghost" type="button">Clear</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Entries Table -->
+  <div class="card">
+    <div class="row">
+      <h2>Today's Entries</h2>
+    </div>
+    <div id="tableWrap" class="table-wrap"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2>Summary</h2>
+    <div class="summary">
+      <div class="box"><div class="muted">Entries</div><div id="sCount" class="val">0</div></div>
+      <div class="box"><div class="muted">Total</div><div id="sTotal" class="val">0</div></div>
+      <div class="box"><div class="muted">Commission</div><div id="sComm" class="val">0</div></div>
+      <div class="box"><div class="muted">Final</div><div id="sFinal" class="val">0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom fixed action bar -->
+<div class="sticky-actions no-print">
+  <button id="mAdd" class="primary">Add</button>
+  <button id="mPdf" class="ghost">PDF</button>
+  <button id="mShare" class="ghost">Share</button>
+</div>
+
+<script>
+(() => {
+  // ===== Utilities =====
+  const $ = s => document.querySelector(s);
+  function todayISO(){ const tz=(new Date()).getTimezoneOffset()*60000; return (new Date(Date.now()-tz)).toISOString().slice(0,10); }
+  function nowTime(){ const d=new Date(); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${m} ${ap}`; }
+  function numberOrZero(x){ const n=Number(String(x??'').replace(/,/g,'')); return isFinite(n)?n:0; }
+
+  // ===== State =====
+  $('#today').value = todayISO();
+  $('#nowtime').value = nowTime();
+  let rows = []; // {id,date,amount,status,time,createdAt,serial}
+  let lastAddedId = null;
+
+  // ===== Core =====
+  function recomputeSerials(){
+    const byDate = {};
+    rows.sort((a,b)=> a.createdAt - b.createdAt).forEach(r=>{
+      byDate[r.date] = (byDate[r.date]||0)+1;
+      r.serial = byDate[r.date];
+    });
+  }
+  function render(){
+    recomputeSerials();
+    const todayRows = rows.filter(r=> r.date===todayISO());
+
+    const tbody = todayRows.map(r=>`<tr data-id="${r.id}" class="${r.id===lastAddedId?'hl':''}">
+      <td>${r.serial}</td>
+      <td>${Number(r.amount).toLocaleString()}</td>
+      <td>${r.status}</td>
+      <td>${r.time}</td>
+      <td class="no-print" style="text-align:right">
+        <button data-act="edit" data-id="${r.id}" class="ghost">Edit</button>
+        <button data-act="del" data-id="${r.id}" class="danger">Delete</button>
+      </td>
+    </tr>`).join('');
+    document.getElementById('tableWrap').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Amount</th><th>Status</th><th>Time</th><th class="no-print"></th></tr></thead>
+        <tbody>${tbody || '<tr><td colspan="5" class="muted">No entries</td></tr>'}</tbody>
+      </table>`;
+
+    const total = todayRows.reduce((s,r)=> s + numberOrZero(r.amount), 0);
+    const pct = Number(document.getElementById('comm').value || 0);
+    const comm = total * (pct/100);
+    const final = total - comm;
+    document.getElementById('sCount').textContent = String(todayRows.length);
+    document.getElementById('sTotal').textContent = total.toLocaleString();
+    document.getElementById('sComm').textContent = comm.toLocaleString();
+    document.getElementById('sFinal').textContent = final.toLocaleString();
+
+    if(lastAddedId){
+      const el = document.querySelector(`tr[data-id="${lastAddedId}"]`);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }
+
+  // ===== Add Entry =====
+  function addEntry(){
+    const amt = numberOrZero(document.getElementById('amount').value);
+    if(!(amt>0)) { if(navigator.vibrate) navigator.vibrate(50); document.getElementById('amount').focus(); return; }
+    const id = 'id-' + Date.now() + Math.random().toString(36).slice(2,7);
+    const t = nowTime();
+    rows.push({ id, date: todayISO(), amount: Math.round(amt), status:'ok', time: t, createdAt: Date.now() });
+    lastAddedId = id;
+
+    const a = document.getElementById('amount');
+    a.value=''; a.style.color='';
+    a.blur(); setTimeout(()=> { a.focus(); }, 60);
+    document.getElementById('nowtime').value = t;
+
+    if (navigator.vibrate) navigator.vibrate(30);
+    render();
+  }
+
+  // ===== PDF (full table borders) =====
+  function buildPdfBlob(){
+    const { jsPDF } = window.jspdf || {};
+    if(!jsPDF){ alert('PDF library not loaded.'); return null; }
+    const doc = new jsPDF({ unit:'pt', format:'a4' });
+
+    const margin = { l:36, t:44, r:36, b:40 };
+    const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+    const usableW = pageW - margin.l - margin.r;
+
+    const title = `Daily Entries — ${todayISO()}`;
+    doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin.l, margin.t-8);
+
+    const headers = ['#','Amount','Status','Time'];
+    const widths  = [ Math.max(36, usableW*0.10), Math.max(90, usableW*0.35), Math.max(80, usableW*0.20), Math.max(80, usableW*0.25) ];
+    const rowH = 22; let y = margin.t + 10;
+
+    doc.setLineWidth(0.6); doc.setDrawColor(200,200,205); doc.setFillColor(50,50,55);
+    let x = margin.l; headers.forEach((h,i)=>{ doc.rect(x,y,widths[i],rowH,'DF'); x+=widths[i]; });
+    doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255); doc.setFontSize(11);
+    x=margin.l; headers.forEach((h,i)=>{ doc.text(String(h), x+6, y+14); x+=widths[i]; });
+    doc.setTextColor(0,0,0);
+
+    const tRows = rows.filter(r=> r.date===todayISO());
+    y+=rowH; doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    const drawRow = r=>{
+      let cx=margin.l; const cells=[String(r.serial), String(r.amount), r.status, r.time];
+      for(let i=0;i<cells.length;i++){ doc.rect(cx,y,widths[i],rowH,'S'); doc.text(cells[i], cx+6, y+14); cx+=widths[i]; }
+      y+=rowH;
+      if(y>pageH - margin.b - rowH){
+        doc.addPage(); y=margin.t;
+        let hx=margin.l; doc.setFont('helvetica','bold'); doc.setFillColor(50,50,55); doc.setTextColor(255,255,255);
+        headers.forEach((h,i)=>{ doc.rect(hx,y,widths[i],rowH,'DF'); hx+=widths[i]; });
+        let hx2=margin.l; headers.forEach((h,i)=>{ doc.text(String(h), hx2+6, y+14); hx2+=widths[i]; });
+        doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); y+=rowH;
+      }
+    };
+    tRows.forEach(drawRow);
+
+    const total = tRows.reduce((s,r)=> s + Number(r.amount||0),0);
+    const pct = Number(document.getElementById('comm').value||0);
+    const commission = total * (pct/100);
+    const final = total - commission;
+
+    y += 12;
+    const sumW = Math.min(usableW, 360);
+    doc.setFont('helvetica','bold'); doc.rect(margin.l, y, sumW, rowH*4+8, 'S'); doc.text('Summary', margin.l+8, y+16);
+    doc.setFont('helvetica','normal');
+    const lines=[`Entries: ${tRows.length}`, `Total: ${total.toLocaleString()}`, `Commission (${pct}%): ${commission.toLocaleString()}`, `Final: ${final.toLocaleString()}`];
+    let sy=y+24; lines.forEach(ln=>{ doc.text(ln, margin.l+12, sy); sy+=18; });
+
+    return doc.output('blob');
+  }
+  function downloadPdf(){ const b=buildPdfBlob(); if(!b) return; const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`Daily_Entries_${todayISO()}.pdf`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),2000); }
+  async function sharePdf(){
+    const blob=buildPdfBlob(); if(!blob) return;
+    const file=new File([blob], `Daily_Entries_${todayISO()}.pdf`, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'Daily Entries', text:'Daily entries PDF attached.'}); }
+      catch(e){ if(e?.name!=='AbortError') alert('Share failed: '+e.message); }
+    }else{
+      downloadPdf();
+      const tRows = rows.filter(r=> r.date===todayISO());
+      const total = tRows.reduce((s,r)=> s + Number(r.amount||0),0);
+      const pct = Number(document.getElementById('comm').value||0);
+      const commission = total * (pct/100);
+      const final = total - commission;
+      const msg = encodeURIComponent(`Daily Entries ${todayISO()}\nEntries: ${tRows.length}\nTotal: ${total}\nCommission (${pct}%): ${commission}\nFinal: ${final}`);
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+  }
+
+  // ===== Events =====
+  document.getElementById('entryForm').addEventListener('submit', e=>{ e.preventDefault(); if(navigator.vibrate) navigator.vibrate(50); addEntry(); });
+  document.getElementById('mAdd').addEventListener('click', addEntry);
+  document.getElementById('mPdf').addEventListener('click', downloadPdf);
+  document.getElementById('mShare').addEventListener('click', sharePdf);
+  document.getElementById('clear').addEventListener('click', ()=>{ const a=document.getElementById('amount'); a.value=''; a.style.color=''; a.focus(); });
+  document.getElementById('comm').addEventListener('change', render);
+
+  const amountEl = document.getElementById('amount');
+  const fireSubmit = e=>{ e.preventDefault(); if(navigator.vibrate) navigator.vibrate(50); addEntry(); };
+  ['keydown','keypress','keyup'].forEach(ev=> amountEl.addEventListener(ev, e=>{ if(e.key==='Enter'){ fireSubmit(e); } }));
+  amountEl.addEventListener('input', ()=>{ const v=amountEl.value.replace(/,/g,''); amountEl.style.color = (v.length>=6)?'#32d74b':''; });
+
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest('button');
+    if(btn){
+      const act=btn.dataset.act, id=btn.dataset.id;
+      if(act==='del'){ rows = rows.filter(r=> r.id!==id); lastAddedId=null; render(); return; }
+      if(act==='edit'){
+        const r=rows.find(x=>x.id===id); if(!r) return;
+        const nv=prompt('Edit amount', r.amount);
+        const val=numberOrZero(nv);
+        if(val>0){ r.amount=Math.round(val); lastAddedId=r.id; render(); }
+        return;
+      }
+    }
+    const tr = e.target.closest('tr[data-id]'); if(tr){ document.querySelectorAll('tr[data-id].hl').forEach(x=>x.classList.remove('hl')); tr.classList.add('hl'); lastAddedId=tr.getAttribute('data-id'); }
+  });
+
+  function doPrint(){ render(); setTimeout(()=> window.print(), 60); }
+  document.getElementById('btnPreview').addEventListener('click', doPrint);
+  document.getElementById('btnCsv').addEventListener('click', ()=>{
+    const tRows = rows.filter(r=> r.date===todayISO());
+    const lines = [ ['Date','Serial','Amount','Status','Time'].join(',') ];
+    tRows.forEach(r=> lines.push([r.date,r.serial,r.amount,r.status,r.time].join(',')));
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`daily_entries_${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
+  });
+  document.getElementById('btnScrollLast').addEventListener('click', ()=>{
+    if(!lastAddedId) return;
+    const el=document.querySelector(`tr[data-id="${lastAddedId}"]`); if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  amountEl.focus();
+  render();
+})();
+</script>
+</body>
+</html>
