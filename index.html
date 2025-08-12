@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Daily Entry — Dark (Final, Image default)</title>
+<meta name="theme-color" content="#0a84ff"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{ --bg:#1c1c1e; --card:#2c2c2e; --border:#3a3a3c; --ink:#ffffff; --muted:#9a9aa0; --accent:#0a84ff; --danger:#ff453a; --ok:#32d74b; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:17px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif}
+  body{padding-bottom:calc(env(safe-area-inset-bottom,0) + 104px)}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  h1{margin:0 0 8px;font-size:22px;font-weight:700}
+  h2{margin:0 0 10px;font-size:18px;font-weight:700}
+  label{font-size:14px;color:var(--muted);display:block;margin-bottom:6px}
+  input{background:#3a3a3c;border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:12px;outline:none;width:100%;font-size:17px;transition:border-color .15s, box-shadow .15s}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(10,132,255,.28)}
+  input[disabled]{background:#2c2c2e;color:#b3b3b8}
+  button{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--card);color:var(--ink);cursor:pointer;font-weight:600;font-size:16px;min-height:46px;min-width:44px;transition:transform .04s ease, background .15s, border-color .15s}
+  button:hover{background:#38383a}
+  button:active{transform:translateY(1px)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.ghost{background:var(--card);border-color:var(--border);color:var(--accent)}
+  button.danger{background:var(--card);border-color:#ff7b74;color:#ffd7d4}
+  .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .box{background:#202022;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+  .box .val{font-size:20px;font-weight:800;margin-top:4px}
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:auto;max-height:56vh}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left}
+  thead th{position:sticky;top:0;background:#232326;z-index:1}
+  tbody tr:hover{background:#2f2f31}
+  .muted{color:var(--muted)}
+  .hl{outline:2px solid rgba(10,132,255,.5);background:#1a2a3f}
+  .sticky-actions{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;gap:10px;background:linear-gradient(180deg, rgba(28,28,30,0) 0%, rgba(28,28,30,.95) 30%), var(--bg);border-top:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0))}
+  .sticky-actions>*{flex:1}
+  /* Modal sheet */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:100}
+  .modal.active{display:flex}
+  .modal-content{background:#2c2c2e;width:100%;border-radius:16px 16px 0 0;padding:16px;animation:slideUp .22s ease}
+  .modal-content h3{margin:0 0 12px;font-size:17px;color:#fff;text-align:center}
+  .modal-content button{width:100%;margin-bottom:10px}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @media(max-width:720px){ .wrap{padding:12px} .grid{grid-template-columns:1fr;gap:10px} .summary{grid-template-columns:1fr 1fr} h1{font-size:20px} h2{font-size:17px} button{font-size:15px} }
+  @media print{ body{background:#fff;color:#000;padding:0} .no-print,.sticky-actions,.modal{display:none} .table-wrap{max-height:none} .card,.wrap{border:0;box-shadow:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header / Entry -->
+  <div class="card">
+    <div class="row">
+      <h1>Daily Entry</h1>
+      <div class="row-actions no-print">
+        <label>Commission %<br>
+          <input id="comm" type="number" step="0.0001" min="0" value="0.7" style="width:140px">
+        </label>
+        <div class="row-actions">
+          <button id="btnPreview" class="ghost">Preview & Print</button>
+          <button id="btnCsv" class="ghost">CSV</button>
+          <button id="btnScrollLast" class="ghost">Last</button>
+        </div>
+      </div>
+    </div>
+    <form id="entryForm" novalidate>
+      <div id="controls" class="grid" style="margin-top:4px">
+        <div>
+          <label>Amount</label>
+          <input id="amount" type="text" inputmode="numeric" placeholder="e.g. 100000" enterkeyhint="done" autocomplete="off"/>
+          <input type="submit" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="today" type="text" disabled>
+        </div>
+        <div>
+          <label>Time</label>
+          <input id="nowtime" type="text" disabled>
+        </div>
+        <div class="row-actions">
+          <button id="clear" class="ghost" type="button">Clear</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Entries Table -->
+  <div class="card">
+    <div class="row"><h2>Today's Entries</h2></div>
+    <div id="tableWrap" class="table-wrap"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2>Summary</h2>
+    <div class="summary">
+      <div class="box"><div class="muted">Entries</div><div id="sCount" class="val">0</div></div>
+      <div class="box"><div class="muted">Total</div><div id="sTotal" class="val">0</div></div>
+      <div class="box"><div class="muted">Commission</div><div id="sComm" class="val">0</div></div>
+      <div class="box"><div class="muted">Final</div><div id="sFinal" class="val">0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom fixed action bar -->
+<div class="sticky-actions no-print">
+  <button id="mAdd" class="primary">Add</button>
+  <button id="mPdf" class="ghost">PDF</button>
+  <button id="mShare" class="ghost">Share</button>
+</div>
+
+<!-- Bottom Sheet: Share chooser (Image is default on top) -->
+<div id="shareModal" class="modal no-print">
+  <div class="modal-content">
+    <h3>Share</h3>
+    <button id="shareImage" class="primary">Share as Image</button>
+    <button id="sharePdf" class="ghost">Share as PDF</button>
+    <button id="closeModal" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ===== Utilities =====
+  const $ = s => document.querySelector(s);
+  function todayISO(){ const tz=(new Date()).getTimezoneOffset()*60000; return (new Date(Date.now()-tz)).toISOString().slice(0,10); }
+  function nowTime(){ const d=new Date(); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${m} ${ap}`; }
+  function numberOrZero(x){ const n=Number(String(x??'').replace(/,/g,'')); return isFinite(n)?n:0; }
+
+  // ===== State =====
+  $('#today').value = todayISO();
+  $('#nowtime').value = nowTime();
+  let rows = []; let lastAddedId = null;
+
+  // ===== Core =====
+  function recomputeSerials(){
+    const byDate = {};
+    rows.sort((a,b)=> a.createdAt - b.createdAt).forEach(r=>{ byDate[r.date] = (byDate[r.date]||0)+1; r.serial = byDate[r.date]; });
+  }
+  function render(){
+    recomputeSerials();
+    const todayRows = rows.filter(r=> r.date===todayISO());
+    const tbody = todayRows.map(r=>`<tr data-id="${r.id}" class="${r.id===lastAddedId?'hl':''}">
+      <td>${r.serial}</td>
+      <td>${Number(r.amount).toLocaleString()}</td>
+      <td>${r.status}</td>
+      <td>${r.time}</td>
+      <td class="no-print" style="text-align:right">
+        <button data-act="edit" data-id="${r.id}" class="ghost">Edit</button>
+        <button data-act="del" data-id="${r.id}" class="danger">Delete</button>
+      </td>
+    </tr>`).join('');
+    document.getElementById('tableWrap').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Amount</th><th>Status</th><th>Time</th><th class="no-print"></th></tr></thead>
+        <tbody>${tbody || '<tr><td colspan="5" class="muted">No entries</td></tr>'}</tbody>
+      </table>`;
+
+    const total = todayRows.reduce((s,r)=> s + numberOrZero(r.amount), 0);
+    const pct = Number(document.getElementById('comm').value || 0);
+    const comm = total * (pct/100);
+    const final = total - comm;
+    document.getElementById('sCount').textContent = String(todayRows.length);
+    document.getElementById('sTotal').textContent = total.toLocaleString();
+    document.getElementById('sComm').textContent = comm.toLocaleString();
+    document.getElementById('sFinal').textContent = final.toLocaleString();
+
+    if(lastAddedId){ const el = document.querySelector(`tr[data-id="${lastAddedId}"]`); if(el) el.scrollIntoView({behavior:'smooth', block:'center'}); }
+  }
+
+  // ===== Add Entry =====
+  function addEntry(){
+    const amt = numberOrZero(document.getElementById('amount').value);
+    if(!(amt>0)) { if(navigator.vibrate) navigator.vibrate(50); document.getElementById('amount').focus(); return; }
+    const id = 'id-' + Date.now() + Math.random().toString(36).slice(2,7);
+    const t = nowTime();
+    rows.push({ id, date: todayISO(), amount: Math.round(amt), status:'ok', time: t, createdAt: Date.now() });
+    lastAddedId = id;
+
+    const a = document.getElementById('amount'); a.value=''; a.style.color=''; a.blur(); setTimeout(()=> a.focus(), 60);
+    document.getElementById('nowtime').value = t;
+    if (navigator.vibrate) navigator.vibrate(30);
+    render();
+  }
+
+  // ===== PDF (improved spacing) =====
+  function buildPdfBlob(){
+    const { jsPDF } = window.jspdf || {};
+    if(!jsPDF){ alert('PDF library not loaded.'); return null; }
+    const doc = new jsPDF({ unit:'pt', format:'a4' });
+    const margin = { l:40, t:60, r:40, b:56 };
+    const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+    const usableW = pageW - margin.l - margin.r;
+    const title = `Daily Entries — ${todayISO()}`;
+    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text(title, margin.l, margin.t - 14);
+
+    const headers = ['#','Amount','Status','Time'];
+    const widths  = [ Math.max(42, usableW*0.10), Math.max(120, usableW*0.40), Math.max(90, usableW*0.20), Math.max(90, usableW*0.30) ];
+    const rowH = 26; let y = margin.t + 4;
+
+    doc.setLineWidth(0.7); doc.setDrawColor(200,200,205); doc.setFillColor(50,50,55);
+    let x = margin.l; headers.forEach((h,i)=>{ doc.rect(x,y,widths[i],rowH,'DF'); x+=widths[i]; });
+    doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255); doc.setFontSize(12);
+    x=margin.l; headers.forEach((h,i)=>{ doc.text(String(h), x+8, y+17); x+=widths[i]; });
+    doc.setTextColor(0,0,0);
+
+    const tRows = rows.filter(r=> r.date===todayISO());
+    y+=rowH; doc.setFont('helvetica','normal'); doc.setFontSize(12);
+    const drawRow = r=>{
+      let cx=margin.l; const cells=[String(r.serial), String(r.amount), r.status, r.time];
+      for(let i=0;i<cells.length;i++){ doc.rect(cx,y,widths[i],rowH,'S'); doc.text(cells[i], cx+8, y+17); cx+=widths[i]; }
+      y+=rowH + 2;
+      if(y>pageH - margin.b - rowH){
+        doc.addPage(); y=margin.t;
+        let hx=margin.l; doc.setFont('helvetica','bold'); doc.setFillColor(50,50,55); doc.setTextColor(255,255,255);
+        headers.forEach((h,i)=>{ doc.rect(hx,y,widths[i],rowH,'DF'); hx+=widths[i]; });
+        let hx2=margin.l; headers.forEach((h,i)=>{ doc.text(String(h), hx2+8, y+17); hx2+=widths[i]; });
+        doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); y+=rowH + 6;
+      }
+    };
+    tRows.forEach(drawRow);
+
+    const total = tRows.reduce((s,r)=> s + Number(r.amount||0),0);
+    const pct = Number(document.getElementById('comm').value||0);
+    const commission = total * (pct/100);
+    const final = total - commission;
+
+    y += 20; // more gap before summary
+    const sumW = Math.min(usableW, 480);
+    const sumH = rowH*4 + 32;
+    doc.setLineWidth(0.8); doc.setDrawColor(180,180,185); doc.rect(margin.l, y, sumW, sumH, 'S');
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('Summary', margin.l+10, y+20);
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(12);
+    const lines=[`Entries: ${tRows.length}`, `Total: ${total.toLocaleString()}`, `Commission (${pct}%): ${commission.toLocaleString()}`, `Final: ${final.toLocaleString()}`];
+    let sy=y+40; lines.forEach(ln=>{ doc.text(ln, margin.l+14, sy); sy+=24; }); // wider leading
+
+    return doc.output('blob');
+  }
+
+  function downloadPdf(){ const b=buildPdfBlob(); if(!b) return; const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`Daily_Entries_${todayISO()}.pdf`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),2000); }
+
+  // === High-quality Image (PNG) ===
+  async function buildImageBlob(){
+    const tRows = rows.filter(r=> r.date===todayISO());
+    const rowH = 40, headerH = 70, summaryH = 180;
+    const topPad = 60, leftPad = 40, rightPad = 40, bottomPad = 60;
+    const width = Math.round(210 * 3.78); // ~A4 width in px
+    const contentW = width - leftPad - rightPad;
+    const tableCols = [0.1, 0.4, 0.2, 0.3];
+    const colW = tableCols.map(f=> Math.floor(contentW * f));
+    const height = topPad + headerH + (tRows.length+1)*rowH + 24 + summaryH + bottomPad;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,width,height);
+    ctx.fillStyle = '#000000'; ctx.font = 'bold 36px Helvetica, Arial, sans-serif';
+    ctx.fillText(`Daily Entries — ${todayISO()}`, leftPad, topPad + 36);
+
+    let y = topPad + headerH; let x = leftPad; const th = rowH;
+    ctx.fillStyle = '#333740'; ctx.fillRect(x, y, contentW, th);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px Helvetica, Arial, sans-serif';
+    const heads=['#','Amount','Status','Time'];
+    let cx=x; for(let i=0;i<heads.length;i++){ const w=colW[i]; ctx.fillText(heads[i], cx+10, y+26); cx+=w; }
+
+    y += th; ctx.font = '16px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#000000';
+    const drawCellText=(txt,xx,yy)=>{ ctx.fillText(String(txt), xx+10, yy+26); };
+    const strokeRect=(xx,yy,ww,hh)=>{ ctx.strokeStyle='#c8c8cd'; ctx.lineWidth=1; ctx.strokeRect(xx,yy,ww,hh); };
+
+    tRows.forEach(r=>{
+      let cx2=x; const cells=[String(r.serial), String(r.amount), r.status, r.time];
+      for(let i=0;i<cells.length;i++){ const w=colW[i]; strokeRect(cx2, y, w, rowH); drawCellText(cells[i], cx2, y); cx2+=w; }
+      y += rowH + 2;
+    });
+
+    y += 24; const sumW = Math.min(contentW, 680); const sumH = summaryH; const sy = y;
+    strokeRect(leftPad, sy, sumW, sumH);
+    ctx.font = 'bold 22px Helvetica, Arial, sans-serif'; ctx.fillText('Summary', leftPad+12, sy+32);
+
+    const total = tRows.reduce((s,r)=> s + Number(r.amount||0),0);
+    const pct = Number(document.getElementById('comm').value||0);
+    const commission = total * (pct/100);
+    const final = total - commission;
+
+    ctx.font = '18px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#000000';
+    const lines=[`Entries: ${tRows.length}`, `Total: ${total.toLocaleString()}`, `Commission (${pct}%): ${commission.toLocaleString()}`, `Final: ${final.toLocaleString()}`];
+    let ly = sy + 64; lines.forEach(l=>{ ctx.fillText(l, leftPad+18, ly); ly += 30; });
+
+    return await new Promise(res=> canvas.toBlob(b=> res(b), 'image/png', 1.0));
+  }
+
+  // ===== Share helpers =====
+  async function sharePdf(){
+    const blob=buildPdfBlob(); if(!blob) return;
+    const file=new File([blob], `Daily_Entries_${todayISO()}.pdf`, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'Daily Entries', text:'Daily entries PDF attached.'});
+    } else { downloadPdf(); }
+  }
+  async function shareImage(){
+    const blob = await buildImageBlob(); if(!blob) return;
+    const file = new File([blob], `Daily_Entries_${todayISO()}.png`, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'Daily Entries (Image)', text:'Daily entries image attached.'});
+    } else {
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`Daily_Entries_${todayISO()}.png`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+    }
+  }
+
+  // ===== Events =====
+  document.getElementById('entryForm').addEventListener('submit', e=>{ e.preventDefault(); if(navigator.vibrate) navigator.vibrate(50); addEntry(); });
+  document.getElementById('mAdd').addEventListener('click', addEntry);
+  document.getElementById('mPdf').addEventListener('click', downloadPdf);
+  document.getElementById('mShare').addEventListener('click', ()=>{ document.getElementById('shareModal').classList.add('active'); });
+  document.getElementById('closeModal').addEventListener('click', ()=>{ document.getElementById('shareModal').classList.remove('active'); });
+  document.getElementById('shareImage').addEventListener('click', async ()=>{ await shareImage(); document.getElementById('shareModal').classList.remove('active'); });
+  document.getElementById('sharePdf').addEventListener('click', async ()=>{ await sharePdf(); document.getElementById('shareModal').classList.remove('active'); });
+
+  document.getElementById('clear').addEventListener('click', ()=>{ const a=document.getElementById('amount'); a.value=''; a.style.color=''; a.focus(); });
+  document.getElementById('comm').addEventListener('change', render);
+
+  const amountEl = document.getElementById('amount');
+  const fireSubmit = e=>{ e.preventDefault(); if(navigator.vibrate) navigator.vibrate(50); addEntry(); };
+  // Fix: only listen once on keydown to avoid duplicate entries
+  amountEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ fireSubmit(e); } });
+  amountEl.addEventListener('input', ()=>{ const v=amountEl.value.replace(/,/g,''); amountEl.style.color = (v.length>=6)?'#32d74b':''; });
+
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest('button');
+    if(btn){
+      const act=btn.dataset.act, id=btn.dataset.id;
+      if(act==='del'){ rows = rows.filter(r=> r.id!==id); lastAddedId=null; render(); return; }
+      if(act==='edit'){
+        const r=rows.find(x=>x.id===id); if(!r) return;
+        const nv=prompt('Edit amount', r.amount);
+        const val=numberOrZero(nv);
+        if(val>0){ r.amount=Math.round(val); lastAddedId=r.id; render(); }
+        return;
+      }
+    }
+    const tr = e.target.closest('tr[data-id]'); if(tr){ document.querySelectorAll('tr[data-id].hl').forEach(x=>x.classList.remove('hl')); tr.classList.add('hl'); lastAddedId=tr.getAttribute('data-id'); }
+  });
+
+  function doPrint(){ render(); setTimeout(()=> window.print(), 60); }
+  document.getElementById('btnPreview').addEventListener('click', doPrint);
+  document.getElementById('btnCsv').addEventListener('click', ()=>{
+    const tRows = rows.filter(r=> r.date===todayISO());
+    const lines = [ ['Date','Serial','Amount','Status','Time'].join(',') ];
+    tRows.forEach(r=> lines.push([r.date,r.serial,r.amount,r.status,r.time].join(',')));
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`daily_entries_${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
+  });
+  document.getElementById('btnScrollLast').addEventListener('click', ()=>{
+    if(!lastAddedId) return;
+    const el=document.querySelector(`tr[data-id="${lastAddedId}"]`); if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  amountEl.focus();
+  render();
+})();
+</script>
+</body>
+</html>
